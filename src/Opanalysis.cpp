@@ -66,11 +66,79 @@ void Opanalysis::optimalExpression(std::shared_ptr<TracesMatrix>& traces_matrix,
          } else (* arg)(i,sample) = -((trace.col(sample)-y).transpose() * ones)(0,0);
      }
    }
-   std::string fn = "/Users/jacopo/Desktop/ArgTraces/OptimalDistinguisher/normnumtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
+   std::string fn = "/Users/jacopo/Dropbox/ArgTraces/OptimalDistinguisher/normnumtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
    Opanalysis::saveInFile(arg, fn.c_str(), numsamples);
 }
 
-void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff, double plat_noise)
+
+//optimalExpressionMP oltre ad applicare l'algoritmo DoM nel caso in cui il modello è conosciuto, modifica i valori calcolati precedentemente del modello in potenza portandoli in un range [-3,+4]
+void Opanalysis::optimalExpressionMP(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char noiseAssumption, char out_model)
+{
+   AnalysisType y(ntraces,1);
+   AnalysisType trace(ntraces, numsamples);
+   AnalysisType pmodel(ntraces, KEY_SIZE);
+   std::shared_ptr<AnalysisType> arg = std::make_shared<AnalysisType>(KEY_SIZE, numsamples);
+   AnalysisType ones;
+   ones.setOnes(ntraces,1);
+   double scalar_product, y_norm;
+
+   trace = ((*traces_matrix).topRows(ntraces));
+   pmodel = ((*power_model).topRows(ntraces));
+   pmodel.array() -= 3;
+   pmodel *= 10;
+
+   for (size_t i = 0; i < KEY_SIZE; i++)
+   {
+      y = pmodel.col(i);
+      for (size_t sample = startingsample; sample < (startingsample+numsamples); sample++)
+      {
+         if(noiseAssumption == 'G')
+         {
+            scalar_product = (y.transpose() * trace.col(sample))(0,0);
+            y_norm = (y.transpose() * y)(0,0);
+            (* arg)(i,sample) = scalar_product - (y_norm / 2);
+         } else (* arg)(i,sample) = -((trace.col(sample)-y).transpose() * ones)(0,0);
+     }
+   }
+   std::string fn = "/Users/jacopo/Dropbox/ArgTraces/OptimalDistinguisher/MODIFIEDMODELnumtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
+   Opanalysis::saveInFile(arg, fn.c_str(), numsamples);
+}
+
+//optimalExpressionMD oltre ad applicare l'algoritmo DoM nel caso in cui il modello è conosciuto, modifica i valori delle tracce portandole tutte maggiori di zero.
+/*void optimalExpressionMD(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char noiseAssumption, char out_model)
+{
+   AnalysisType y(ntraces,1);
+   AnalysisType trace(ntraces, numsamples);
+   AnalysisType currtrace(ntraces, 1);
+   AnalysisType pmodel(ntraces, KEY_SIZE);
+   std::shared_ptr<AnalysisType> arg = std::make_shared<AnalysisType>(KEY_SIZE, numsamples);
+   AnalysisType ones;
+   ones.setOnes(ntraces,1);
+   double scalar_product, y_norm;
+
+   trace = ((*traces_matrix).topRows(ntraces));
+   pmodel = ((*power_model).topRows(ntraces));
+
+   for (size_t i = 0; i < KEY_SIZE; i++)
+   {
+      y = pmodel.col(i);
+      for (size_t sample = startingsample; sample < (startingsample+numsamples); sample++)
+      {
+         currtrace.fill(trace.col(sample).minCoeff());
+         currtrace += trace.col(sample);
+         if(noiseAssumption == 'G')
+         {
+            scalar_product = (y.transpose() * currtrace)(0,0);
+            y_norm = (y.transpose() * y)(0,0);
+            (* arg)(i,sample) = scalar_product - (y_norm / 2);
+         } else (* arg)(i,sample) = -((currtrace-y).transpose() * ones)(0,0);
+     }
+   }
+   std::string fn = "/Users/jacopo/Dropbox/ArgTraces/OptimalDistinguisher/MODIFIEDTRACESnumtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
+   Opanalysis::saveInFile(arg, fn.c_str(), numsamples);
+}*/
+
+void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff_squared, double plat_noise)
 {
    AnalysisType y(ntraces,1);
    AnalysisType scalar_product;
@@ -86,7 +154,7 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
    I.setIdentity();
    double esnr;
 
-   esnr = pel_coeff / plat_noise;
+   esnr = pel_coeff_squared / plat_noise;
    eight_ones.setOnes(8,1);
 
    trace = ((*traces_matrix).topRows(ntraces));
@@ -97,7 +165,7 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
       y = pmodel.col(i);
       for (size_t j = 0; j < 8; j++) {
         for (size_t r = 0; r < y.rows(); r++) {
-          y_matrix(r,j) = ((int)y(r) << j) ^ 128;
+          y_matrix(r,j) = ((int)y(r) << j) & 128;
         }
       }
       gram_matrix = y_matrix.transpose() * y_matrix; //matrix (8,8)
@@ -106,12 +174,13 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
       {
            scalar_product = (trace.col(sample).transpose() * y_matrix).transpose(); //eight-colvector
 	         operand_one = (scalar_product * esnr + eight_ones);//matrix (8,1)
+
 	         operand_two = (gram_matrix * esnr + I); //matrix (8,8)
 
-           (* arg)(i,sample) = (operand_one.transpose() * operand_two.inverse() * operand_one)(0,0) - pel_coeff * log(operand_two.determinant()); //((1,8) * (8,8) * (8,1))
+           (* arg)(i,sample) = (operand_one.transpose() * operand_two.inverse() * operand_one)(0,0) - pel_coeff_squared * log(operand_two.determinant()) / 2; //((1,8) * (8,8) * (8,1))
       }
    }
-   std::string fn = "/Users/jacopo/Desktop/ArgTraces/OptimalDistinguisherUnknownModel/numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "Pelgromcoefficient" + std::to_string((int)pel_coeff) + "Platformnoise" + std::to_string((int)plat_noise) + "model" + out_model + ".bin";
+   std::string fn = "/Users/jacopo/Dropbox/ArgTraces/OptimalDistinguisherUnknownModel/numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "Pelgromcoefficient" + std::to_string((int)pel_coeff_squared) + "Platformnoise" + std::to_string((int)plat_noise) + "model" + out_model + ".bin";
    Opanalysis::saveInFile(arg, fn.c_str(), numsamples);
 }
 
@@ -137,13 +206,13 @@ void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_p
 	       tr = traces.col(sample);
          mx.fill((tr.sum()/tr.size()));
          my.fill((y.sum()/y.size()));
-         num =  ((tr - mx).transpose() *  (y-my))(0,0);
+         num =  ((tr - mx).transpose() *  (y - my))(0,0);
          varx = ((tr - mx).transpose() * (tr - mx))(0,0) ;
 	       vary = ((y - my).transpose() * (y - my))(0,0);
 	       (* arg)(i,sample) = std::abs(num) / sqrt(varx*vary);
     }
   }
-  std::string fn = "/Users/jacopo/Desktop/ArgTraces/CPA/numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "model" + out_model + ".bin";
+  std::string fn = "/Users/jacopo/Dropbox/ArgTraces/CPA/numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "model" + out_model + ".bin";
   Opanalysis::saveInFile(arg, fn.c_str(), numsamples);
 
 }
