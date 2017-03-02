@@ -1,10 +1,10 @@
-NAME	 = myprog
+NAME	 = myprog.out
 CXX	 = g++
 CXXFLAGS = -std=c++11 -Wall -I$(INCDIR) -I$(INCDIREIGEN)
 
 SRCDIR	 = ./src
 INCDIR	 = ./include
-INCDIREIGEN = /usr/local/include/eigen3
+INCDIREIGEN = ./dependencies
 SOURCES	 = $(SRCDIR)/main.cpp $(SRCDIR)/Opanalysis.cpp $(SRCDIR)/Inputfile.cpp
 OBJECTS	 = $(SOURCES:.cpp=.o)
 
