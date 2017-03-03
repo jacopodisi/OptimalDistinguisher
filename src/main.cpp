@@ -15,6 +15,20 @@ int main(int argc, char* argv[]){
    */
    // max traces : 12500
    // max samples : 5918
+   //Check of the arguments
+   while (true)
+      {
+         if (argc > 1)
+         {
+            std::string tmp = argv[1];
+            if (argc == 3 || (argc == 5 && tmp.find('U')))
+               break;
+         }
+         std::cout << "Error in choosing the options. Reinsert it: \n";
+         std::cout << "argv[1] -> ptx \nargv[2] -> numtraces \nargv[3] -> pelgrom \nargv[4] -> platnoise \n";
+         std::cout << "Reinsert them: \n";
+         std::cin >> (*argv);
+      }
    int max_samples = 5918;
    unsigned ptx = atof(argv[2]);
 
