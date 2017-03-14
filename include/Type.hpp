@@ -18,4 +18,3 @@ using namespace Eigen;
 typedef std::bitset<DATA_SIZE_BIT> DataValueType;
 typedef Eigen::Matrix<DataValueType, Eigen::Dynamic, Eigen::Dynamic> DataMatrix;
 typedef Eigen::Matrix<ANALYSIS_TYPE, Eigen::Dynamic, Eigen::Dynamic> TracesMatrix;
-typedef Eigen::Matrix<ANALYSIS_TYPE, Eigen::Dynamic, Eigen::Dynamic> AnalysisType;

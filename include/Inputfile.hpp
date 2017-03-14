@@ -12,9 +12,7 @@ class Inputfile{
    fileheaders header;
 	long long RealFileSize;
 	void* fileoffset;
-   unsigned long NumSamplesPerTrace;
-	unsigned long NumTraces;
-	unsigned long NumPtx;
+  bool fl; //true if the trace is saved in float, false if it is save in double
 
 public:
    /* apre il file "filename" e salva:
@@ -39,10 +37,10 @@ public:
 
 protected:
    unsigned long long getSampleOffset ( unsigned long trace, unsigned long samplenum ) {
-       return HEADER_SIZE + trace * ( SAMPLE_SIZE * NumSamplesPerTrace + DATA_SIZE_BYTE * 16) + SAMPLE_SIZE * samplenum;
+       return HEADER_SIZE + trace * ( SAMPLE_SIZE * header.numsamples_per_trace + DATA_SIZE_BYTE * 16) + SAMPLE_SIZE * samplenum;
    }
    unsigned long long getDataOffset ( unsigned long trace ) {
-       return HEADER_SIZE + trace * ( SAMPLE_SIZE * NumSamplesPerTrace + DATA_SIZE_BYTE * 16) + SAMPLE_SIZE * NumSamplesPerTrace;
+       return HEADER_SIZE + trace * ( SAMPLE_SIZE * header.numsamples_per_trace + DATA_SIZE_BYTE * 16) + SAMPLE_SIZE * header.numsamples_per_trace;
    }
 
 };
