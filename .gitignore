@@ -32,3 +32,4 @@ Compiled Object files
 .clang_complete
 .sublimelinterrc
 .DS_Store
+.bin
