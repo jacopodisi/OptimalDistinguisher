@@ -1,6 +1,8 @@
-./myprog.out CU 13 12500 6 1
-./myprog.out C 3 12500
-./myprog.out C 5 12500
-./myprog.out C 7 12500
-./myprog.out C 9 12500
-./myprog.out C 11 12500
+for (( i = 0; i < 50; i++ )) 
+do
+    for nt in 600 700 800 900 1100 #500 1000 1250 1500 1750 2000 2250 2500 2750 3000
+	do
+		./myprog.out --numtraces $nt --startsample 400 --numsamples 200 --random --savek
+	done
+done
+#./myprog.out --numtraces 5000 --startsample 400 --numsamples 600 --unknown --random

@@ -27,8 +27,8 @@ public:
     * di DATA_SIZE_BIT (DataValueType)
     */
    std::shared_ptr<DataMatrix> readData();
-   void readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long curtrace, unsigned long startingsample, unsigned long numsamples );
-   void readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long curtrace);
+   void readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long it, unsigned long trace, unsigned long startingsample, unsigned long numsamples );
+   void readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long it, unsigned long trace);
 	unsigned long getNumSamplesPerTrace();
 	unsigned long getNumTraces();
 	unsigned long getNumPtx();

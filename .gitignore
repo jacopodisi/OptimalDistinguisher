@@ -29,7 +29,8 @@ Compiled Object files
 *.app
 
 #Others
-.clang_complete
-.sublimelinterrc
-.DS_Store
-.bin
+*.clang_complete
+*.sublimelinterrc
+*.DS_Store
+*.bin
+*.txt

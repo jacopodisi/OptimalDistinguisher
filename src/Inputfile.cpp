@@ -29,42 +29,32 @@ Inputfile::Inputfile(const char * filename)
    }
 }
 
-void Inputfile::readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long curtrace, unsigned long startingsample, unsigned long numsamples )
+void Inputfile::readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long it, unsigned long trace, unsigned long startingsample, unsigned long numsamples )
 {
-   if (numsamples + startingsample > header.numsamples_per_trace)
-   {
-      std::cout << "error, wrong number of samples\n";
-      return;
-   }
-   if (curtrace > header.numtraces)
-   {
-      std::cout << "error, wrong trace\n";
-      return;
-   }
    if (fl)
    {
    	float* buffer;
-   	buffer = ( float* ) ( ( char* ) fileoffset + getSampleOffset ( curtrace, startingsample ) );
+   	buffer = ( float* ) ( ( char* ) fileoffset + getSampleOffset ( trace, startingsample ) );
    	for ( unsigned long i = 0; i < numsamples; i++ ) {
-   		( *traces ) ( curtrace, i ) = (ANALYSIS_TYPE) buffer[i];
+   		( *traces ) ( it, i ) = (ANALYSIS_TYPE) buffer[i];
    	}
    } else 
    {
       double* buffer;
-      buffer = ( double* ) ( ( char* ) fileoffset + getSampleOffset ( curtrace, startingsample ) );
+      buffer = ( double* ) ( ( char* ) fileoffset + getSampleOffset ( trace, startingsample ) );
       for ( unsigned long i = 0; i < numsamples; i++ ) {
-         ( *traces ) ( curtrace, i ) = (ANALYSIS_TYPE) buffer[i];
+         ( *traces ) ( it, i ) = (ANALYSIS_TYPE) buffer[i];
       }
    }
 }
 
-void Inputfile::readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long curtrace)
+void Inputfile::readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long it, unsigned long trace)
 {
 	uint8_t* buffer;
-	buffer = ( uint8_t* ) ( ( char* ) fileoffset + getDataOffset (curtrace) );
+	buffer = ( uint8_t* ) ( ( char* ) fileoffset + getDataOffset (trace) );
    for ( unsigned long i = 0; i < (*data_matrix).cols(); i++ ) {
       DataValueType bar (buffer[i]);
-		( *data_matrix ) ( curtrace, i ) = bar;
+		( *data_matrix ) ( it, i ) = bar;
 	}
 }
 

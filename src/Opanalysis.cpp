@@ -23,12 +23,12 @@ void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>& pModel, std::shared_p
          addkey = (*data_matrix)(i, colptx) ^ key(j);
          if (out_model == 'S')
          {
-           sboxout = sbox(addkey.to_ulong());
-           (*pModel)(i,j) = hw(sboxout);
+            sboxout = sbox(addkey.to_ulong());
+            (*pModel)(i,j) = hw(sboxout);
          }
          else if (out_model == 'K')
          {
-           (*pModel)(i,j) = hw(addkey.to_ulong());
+            (*pModel)(i,j) = hw(addkey.to_ulong());
          }
          else
          std::cerr << "WRONG OUTPUT CHOOSE" << '\n';
@@ -37,7 +37,7 @@ void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>& pModel, std::shared_p
 }
 
 
-void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char noiseAssumption, char out_model, int ptx, bool save)
+void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char noiseAssumption, char out_model, int ptx, bool save, bool savek)
 {
    TracesMatrix y(ntraces,1);
    TracesMatrix trace(ntraces, numsamples);
@@ -55,17 +55,18 @@ void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std
    for (int i = 0; i < KEY_SIZE; i++)
    {
       y = pmodel.col(i);
-      for (int sample = startingsample; sample < (startingsample+numsamples); sample++)
+      int j = 0;
+      for (int sample = startingsample; sample < (startingsample+numsamples); sample++, j++)
       {
          if(noiseAssumption == 'G')
          {
             scalar_product = (y.transpose() * trace.col(sample))(0,0);
             y_norm = (y.transpose() * y)(0,0);
-            (* arg)(i,sample) = scalar_product - (y_norm / 2);
-         } else (* arg)(i,sample) = -((trace.col(sample)-y).transpose() * ones)(0,0);
+            (* arg)(i,j) = scalar_product - (y_norm / 2);
+         } else (* arg)(i,j) = -((trace.col(sample)-y).transpose() * ones)(0,0);
      }
    }
-   for (int sample = startingsample; sample < (startingsample+numsamples); sample++)
+   for (int sample = 0; sample < numsamples; sample++)
    {
       float diff;
       float mean = arg->col(sample).sum() / arg->rows();
@@ -79,16 +80,22 @@ void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std
          }
       }
    }
-   std::cout << "Key: " + std::to_string(best_key) + "\n";
    if(save)
    {
       std::string dn = "DoMKnownmodel";
       std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
+   if(savek)
+   {
+      std::ofstream outfile;
+      std::string fn = "bestkeys/nt" + std::to_string(ntraces) + "ns" + std::to_string(numsamples) + ".txt";
+      outfile.open(fn, std::ios_base::app);
+      outfile << best_key << '\n';
+   } else std::cout << "Key: " + std::to_string(best_key) + "\n";
 }
 
-void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff_squared, double plat_noise, int ptx, bool save)
+void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff_squared, double plat_noise, int ptx, bool save, bool savek)
 {
    TracesMatrix y(ntraces,1);
    TracesMatrix scalar_product;
@@ -125,15 +132,16 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
          }
       }
       gram_matrix = y_matrix.transpose() * y_matrix; //matrix (8,8)
-      for (int sample = startingsample; sample < (startingsample+numsamples); sample++)
+      int j = 0;
+      for (int sample = startingsample; sample < (startingsample+numsamples); sample++, j++)
       {
          scalar_product = (trace.col(sample).transpose() * y_matrix).transpose(); //eight-colvector
 	       operand_one = (scalar_product * esnr + eight_ones);//matrix (8,1)
 	       operand_two = (gram_matrix * esnr + I); //matrix (8,8)
-         (* arg)(i,sample) = (operand_one.transpose() * operand_two.inverse() * operand_one)(0,0) - pel_coeff_squared * log(operand_two.determinant()) / 2; //((1,8) * (8,8) * (8,1))
+         (* arg)(i,j) = (operand_one.transpose() * operand_two.inverse() * operand_one)(0,0) - pel_coeff_squared * log(operand_two.determinant()) / 2; //((1,8) * (8,8) * (8,1))
       }
    }
-   for (int sample = startingsample; sample < (startingsample+numsamples); sample++)
+   for (int sample = 0; sample < numsamples; sample++)
    {
       float diff;
       int locmaxkey = 0;
@@ -159,16 +167,22 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
          best_key = key;
       }
    }
-   std::cout << "Key: " + std::to_string(best_key) + "\n";
    if(save)
    {
       std::string dn = "DoMUnknownmodel";
       std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "Pelgromcoefficient" + std::to_string((int)pel_coeff_squared) + "Platformnoise" + std::to_string((int)plat_noise) + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
+   if(savek)
+   {
+      std::ofstream outfile;
+      std::string fn = "bestkeys/unt" + std::to_string(ntraces) + "ns" + std::to_string(numsamples) + ".txt";
+      outfile.open(fn, std::ios_base::app);
+      outfile << best_key << '\n';
+   } else std::cout << "Key: " + std::to_string(best_key) + "\n";
 }
 
-void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, int ptx, bool save)
+void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, int ptx, bool save, bool savek)
 {
    TracesMatrix tr(ntraces,1);
    TracesMatrix y(ntraces,1);
@@ -187,7 +201,8 @@ void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_p
    for (int i = 0; i < KEY_SIZE; i++)
    {
       y = pmodel.col(i);
-      for (int sample = startingsample; sample < (startingsample+numsamples); sample++)
+      int j = 0;
+      for (int sample = startingsample; sample < (startingsample+numsamples); sample++, j++)
       {
          tr = traces.col(sample);
          mx.fill((tr.sum()/tr.size()));
@@ -195,19 +210,25 @@ void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_p
          num =  ((tr - mx).transpose() *  (y - my))(0,0);
          varx = ((tr - mx).transpose() * (tr - mx))(0,0) ;
          vary = ((y - my).transpose() * (y - my))(0,0);
-         (* arg)(i,sample) = std::abs(num) / sqrt(varx*vary);
-         if ((*arg)(i, sample) > max)
+         (* arg)(i,j) = std::abs(num) / sqrt(varx*vary);
+         if ((*arg)(i, j) > max)
          {
-            max = (*arg)(i, sample);
+            max = (*arg)(i, j);
             best_key = i;
          }
       }
    }
-   std::cout << "Key: " + std::to_string(best_key) + "\n";
    if(save)
    {
       std::string dn = "CPA";
       std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
+   if(savek)
+   {
+      std::ofstream outfile;
+      std::string fn = "bestkeys/cpant" + std::to_string(ntraces) + "ns" + std::to_string(numsamples) + ".txt";
+      outfile.open(fn, std::ios_base::app);
+      outfile << best_key << '\n';
+   } else std::cout << "Key: " + std::to_string(best_key) + "\n";
 }
