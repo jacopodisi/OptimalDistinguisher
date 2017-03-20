@@ -17,8 +17,9 @@ int main(int argc, char* argv[]){
    unsigned startsample, numsamples, ptx;
    float pelgromcoeff, platnoise;
    bool known, unknown, cpa, save, savek, random;
+   char noiseassumption, model;
 
-   std::string fn = "/Users/jacopo/Dropbox/University-ComputerEngineering/Specialistica/Cryptography/Project/jdisimone/aes_test_traces.dat";
+   std::string fn = "../aes_test_traces.dat";
    Inputfile aes(fn.c_str());
    numtraces = aes.getNumTraces();
    startsample = 0;
@@ -32,6 +33,8 @@ int main(int argc, char* argv[]){
    save = false;
    savek = false;
    random = false;
+   noiseassumption = 'G';
+   model = 'S';
    //HANDLE OPTIONS
    const struct option longopts[] =
    {
@@ -47,6 +50,8 @@ int main(int argc, char* argv[]){
       {"save",          no_argument,         0, 'v'   },
       {"savek",         no_argument,         0, 'x'   },
       {"random",        no_argument,         0, 'r'   },
+      {"laplacian",     no_argument,         0, 'a'   },
+      {"addroundkey",   no_argument,         0, 'o'   },
       {0,               0,                   0,  0    },
    };
    int index;
@@ -55,7 +60,7 @@ int main(int argc, char* argv[]){
    opterr = 1; 
    while(iarg != -1)
    {
-      iarg = getopt_long(argc, argv, "kucvn:s:m:x:e:l:", longopts, &index);
+      iarg = getopt_long(argc, argv, "rxkucovn:s:m:e:l:p:", longopts, &index);
       switch (iarg)
       {
          case 'n':
@@ -112,18 +117,26 @@ int main(int argc, char* argv[]){
          case 'r':
             random = true;
             break;
+         case 'a':
+            noiseassumption = 'L';
+            break;
+         case 'o':
+            model = 'K';
+            break;
       }
    }
    while((startsample + numsamples) > aes.getNumSamplesPerTrace() ) 
    {
-      std::cout << "Wrong value for startsample and numsamples.\n Choose another start in range (0, " + std::to_string(numsamples - 1) + "): ";
+      std::cout << "Wrong value for startsample and numsamples.\n Choose another start in range (0, " + std::to_string(aes.getNumSamplesPerTrace() - 1) + "): ";
       std::cin >> startsample;
-      std::cout << "\n Choose numsamples in range (0, " + std::to_string(numsamples - startsample) + "): ";
+      std::cout << "Choose numsamples in range (0, " + std::to_string(aes.getNumSamplesPerTrace() - startsample) + "): ";
+      std::cin >> numsamples;
    }
 
    std::shared_ptr<TracesMatrix> traces_matrix = std::make_shared<TracesMatrix>(numtraces, aes.getNumSamplesPerTrace());
    std::shared_ptr<DataMatrix> data_matrix = std::make_shared<DataMatrix>(numtraces, aes.getNumPtx());
-   std::shared_ptr<TracesMatrix> power_model_sbox = std::make_shared<TracesMatrix>(numtraces,KEY_SIZE);
+   data_matrix->fill(0);
+   std::shared_ptr<TracesMatrix> power_model = std::make_shared<TracesMatrix>(numtraces,KEY_SIZE);
    std::vector<bool> list_traces(aes.getNumTraces(), false);
    for (unsigned long i = 0; i < numtraces; i++)
    {
@@ -140,10 +153,11 @@ int main(int argc, char* argv[]){
       aes.readSamples(traces_matrix, i, tr, 0, aes.getNumSamplesPerTrace());
       aes.readPtx(data_matrix, i, tr);
    }
+   std::cout << "cacca";
    
-   Opanalysis::aesModelHW(power_model_sbox, data_matrix, numtraces, ptx, 'S');
+   Opanalysis::aesModelHW(power_model, data_matrix, numtraces, ptx, model);
    
-   if (known) Opanalysis::DoMKnownmodel(traces_matrix, power_model_sbox, startsample, numsamples, numtraces, 'G', 'S', ptx, save, savek);
-   if (unknown) Opanalysis::DoMUnknownmodel(traces_matrix, power_model_sbox, startsample, numsamples, numtraces, 'S', pelgromcoeff, platnoise, ptx, save, savek);
-   if (cpa) Opanalysis::CPA(traces_matrix, power_model_sbox, startsample, numsamples, numtraces, 'S', ptx, save, savek);
+   if (known) Opanalysis::DoMKnownmodel(traces_matrix, power_model, startsample, numsamples, numtraces, noiseassumption, model, ptx, save, savek);
+   if (unknown) Opanalysis::DoMUnknownmodel(traces_matrix, power_model, startsample, numsamples, numtraces, model, pelgromcoeff, platnoise, ptx, save, savek);
+   if (cpa) Opanalysis::CPA(traces_matrix, power_model, startsample, numsamples, numtraces, model, ptx, save, savek);
 }

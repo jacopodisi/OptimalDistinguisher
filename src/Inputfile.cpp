@@ -50,12 +50,11 @@ void Inputfile::readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned lo
 
 void Inputfile::readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long it, unsigned long trace)
 {
-	uint8_t* buffer;
-	buffer = ( uint8_t* ) ( ( char* ) fileoffset + getDataOffset (trace) );
+	DataValueType* buffer;
+   buffer = (DataValueType*) fileoffset + getDataOffset (trace);
    for ( unsigned long i = 0; i < (*data_matrix).cols(); i++ ) {
-      DataValueType bar (buffer[i]);
-		( *data_matrix ) ( it, i ) = bar;
-	}
+      ( *data_matrix ) ( it, i ) = buffer[i];
+   }
 }
 
 unsigned long Inputfile::getNumSamplesPerTrace(){return header.numsamples_per_trace;}

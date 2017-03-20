@@ -63,7 +63,13 @@ void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std
             scalar_product = (y.transpose() * trace.col(sample))(0,0);
             y_norm = (y.transpose() * y)(0,0);
             (* arg)(i,j) = scalar_product - (y_norm / 2);
-         } else (* arg)(i,j) = -((trace.col(sample)-y).transpose() * ones)(0,0);
+         } else if(noiseAssumption == 'L') 
+            (* arg)(i,j) = -((trace.col(sample)-y).transpose() * ones)(0,0);
+         else
+         {
+            std::cout << "wrong noiseAssumption\n";
+            exit(1);
+         }
      }
    }
    for (int sample = 0; sample < numsamples; sample++)

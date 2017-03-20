@@ -1,3 +1,6 @@
+#ifndef OPANALYSIS
+#define OPANALYSIS
+
 #include "Type.hpp"
 #include <fstream>
 #include <sys/stat.h>
@@ -18,11 +21,7 @@ public:
    static void saveInFile(std::shared_ptr<TracesMatrix>& arg, std::string filename, std::string directoryname, unsigned long numsam)
    {
       std::string dirname = "./" + directoryname;
-      if (-1 == mkdir(dirname.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-      {
-          printf("Error creating directory!\n");
-          exit(1);
-      }
+      mkdir(dirname.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
       double output[numsam];
       std::string fn = dirname + "/" + filename;
       FILE *fs = fopen(fn.c_str(), "wb");
@@ -48,3 +47,5 @@ public:
       }
    }
 };
+
+#endif //OPANALYSIS
