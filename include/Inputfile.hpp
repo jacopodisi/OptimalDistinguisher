@@ -1,18 +1,21 @@
+#ifndef INPUTFILE
+#define INPUTFILE
+
 #include "Type.hpp"
 
 struct fileheaders {
-		uint32_t numtraces;
-		uint32_t numsamples_per_trace;
-		char datatype;
-		uint8_t knowndatalength;
+	 uint32_t numtraces;
+	 uint32_t numsamples_per_trace;
+	 char datatype;
+	 uint8_t knowndatalength;
 };
 
 class Inputfile{
    int inputfd;
    fileheaders header;
-	long long RealFileSize;
-	void* fileoffset;
-  bool fl; //true if the trace is saved in float, false if it is save in double
+	 long long RealFileSize;
+	 void* fileoffset;
+   bool fl; //true if the trace is saved in float, false if it is save in double
 
 public:
    /* apre il file "filename" e salva:
@@ -29,9 +32,9 @@ public:
    std::shared_ptr<DataMatrix> readData();
    void readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long it, unsigned long trace, unsigned long startingsample, unsigned long numsamples );
    void readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long it, unsigned long trace);
-	unsigned long getNumSamplesPerTrace();
-	unsigned long getNumTraces();
-	unsigned long getNumPtx();
+	 unsigned long getNumSamplesPerTrace();
+	 unsigned long getNumTraces();
+	 unsigned long getNumPtx();
 
    ~Inputfile();
 
@@ -44,3 +47,5 @@ protected:
    }
 
 };
+
+#endif //INPUTFILE

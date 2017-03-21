@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
    float pelgromcoeff, platnoise;
    bool known, unknown, cpa, save, savek, random;
 
-   std::string fn = "/Users/jacopo/Dropbox/University-ComputerEngineering/Specialistica/Cryptography/Project/jdisimone/aes_test_traces.dat";
+   std::string fn = "../aes_test_traces.dat";
    Inputfile aes(fn.c_str());
    numtraces = aes.getNumTraces();
    startsample = 0;
