@@ -29,32 +29,31 @@ Inputfile::Inputfile(const char * filename)
    }
 }
 
-void Inputfile::readSamples ( std::shared_ptr<TracesMatrix>& traces, unsigned long it, unsigned long trace, unsigned long startingsample, unsigned long numsamples )
+void Inputfile::readSamples ( std::shared_ptr<TracesMatrix> traces, unsigned long traces_row, unsigned long trace, unsigned long startingsample, unsigned long numsamples )
 {
    if (fl)
    {
    	float* buffer;
    	buffer = ( float* ) ( ( char* ) fileoffset + getSampleOffset ( trace, startingsample ) );
    	for ( unsigned long i = 0; i < numsamples; i++ ) {
-   		( *traces ) ( it, i ) = (ANALYSIS_TYPE) buffer[i];
+   		( *traces ) ( traces_row, i ) = (ANALYSIS_TYPE) buffer[i];
    	}
    } else 
    {
       double* buffer;
       buffer = ( double* ) ( ( char* ) fileoffset + getSampleOffset ( trace, startingsample ) );
       for ( unsigned long i = 0; i < numsamples; i++ ) {
-         ( *traces ) ( it, i ) = (ANALYSIS_TYPE) buffer[i];
+         ( *traces ) ( traces_row, i ) = (ANALYSIS_TYPE) buffer[i];
       }
    }
 }
 
-void Inputfile::readPtx ( std::shared_ptr<DataMatrix>& data_matrix, unsigned long it, unsigned long trace)
+void Inputfile::readPtx ( std::shared_ptr<DataMatrix> data_matrix, unsigned long data_row, unsigned long trace)
 {
-	uint8_t* buffer;
-	buffer = ( uint8_t* ) ( ( char* ) fileoffset + getDataOffset (trace) );
+	DataValueType* buffer;
+	buffer = (DataValueType*) fileoffset + getDataOffset (trace);
    for ( unsigned long i = 0; i < (*data_matrix).cols(); i++ ) {
-      DataValueType bar (buffer[i]);
-		( *data_matrix ) ( it, i ) = bar;
+		(*data_matrix)(data_row, i) = buffer[i];
 	}
 }
 

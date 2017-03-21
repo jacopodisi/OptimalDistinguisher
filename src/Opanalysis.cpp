@@ -8,7 +8,7 @@
 
 using namespace Eigen;
 
-void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>& pModel, std::shared_ptr<DataMatrix>& data_matrix, unsigned long numtraces, unsigned long colptx, char out_model)
+void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>pModel, std::shared_ptr<DataMatrix>data_matrix, unsigned long numtraces, unsigned long byte, char aes_model)
 {
    DataValueType addkey;
    ANALYSIS_TYPE sboxout;
@@ -20,15 +20,15 @@ void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>& pModel, std::shared_p
    hw << 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8;
    for (int i = 0; i < numtraces; i++) {
       for (int j = 0; j < KEY_SIZE; j++) {
-         addkey = (*data_matrix)(i, colptx) ^ key(j);
-         if (out_model == 'S')
+         addkey = (*data_matrix)(i, byte) ^ key(j);
+         if (aes_model == 'S')
          {
-            sboxout = sbox(addkey.to_ulong());
+            sboxout = sbox(addkey);
             (*pModel)(i,j) = hw(sboxout);
          }
-         else if (out_model == 'K')
+         else if (aes_model == 'K')
          {
-            (*pModel)(i,j) = hw(addkey.to_ulong());
+            (*pModel)(i,j) = hw(addkey);
          }
          else
          std::cerr << "WRONG OUTPUT CHOOSE" << '\n';
@@ -37,20 +37,20 @@ void Opanalysis::aesModelHW(std::shared_ptr<TracesMatrix>& pModel, std::shared_p
 }
 
 
-void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char noiseAssumption, char out_model, int ptx, bool save, bool savek)
+void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>traces_matrix, std::shared_ptr<TracesMatrix>power_model, unsigned long startingsample, unsigned long numsamples, unsigned long numtraces, char noise_assumption, char out_model, int bytes, bool save, bool savek)
 {
-   TracesMatrix y(ntraces,1);
-   TracesMatrix trace(ntraces, numsamples);
-   TracesMatrix pmodel(ntraces, KEY_SIZE);
+   TracesMatrix y(numtraces,1);
+   TracesMatrix trace(numtraces, numsamples);
+   TracesMatrix pmodel(numtraces, KEY_SIZE);
    std::shared_ptr<TracesMatrix> arg = std::make_shared<TracesMatrix>(KEY_SIZE, numsamples);
    TracesMatrix ones;
-   ones.setOnes(ntraces,1);
+   ones.setOnes(numtraces,1);
    double scalar_product, y_norm;
    float max_diff = 0;
    int best_key = 0;
 
-   trace = ((*traces_matrix).topRows(ntraces));
-   pmodel = ((*power_model).topRows(ntraces));
+   trace = ((*traces_matrix).topRows(numtraces));
+   pmodel = ((*power_model).topRows(numtraces));
 
    for (int i = 0; i < KEY_SIZE; i++)
    {
@@ -58,7 +58,7 @@ void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std
       int j = 0;
       for (int sample = startingsample; sample < (startingsample+numsamples); sample++, j++)
       {
-         if(noiseAssumption == 'G')
+         if(noise_assumption == 'G')
          {
             scalar_product = (y.transpose() * trace.col(sample))(0,0);
             y_norm = (y.transpose() * y)(0,0);
@@ -83,19 +83,19 @@ void Opanalysis::DoMKnownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std
    if(save)
    {
       std::string dn = "DoMKnownmodel";
-      std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "noise" + noiseAssumption + "model" + out_model + ".bin";
+      std::string fn = "bytes" + std::to_string(bytes) + "numtraces" + std::to_string(numtraces) + "nsam" + std::to_string(numsamples) + "noise" + noise_assumption + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
    if(savek)
    {
       std::ofstream outfile;
-      std::string fn = "bestkeys/nt" + std::to_string(ntraces) + "ns" + std::to_string(numsamples) + ".txt";
+      std::string fn = "bestkeys/nt" + std::to_string(numtraces) + "ns" + std::to_string(numsamples) + ".txt";
       outfile.open(fn, std::ios_base::app);
       outfile << best_key << '\n';
    } else std::cout << "Key: " + std::to_string(best_key) + "\n";
 }
 
-void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff_squared, double plat_noise, int ptx, bool save, bool savek)
+void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>traces_matrix, std::shared_ptr<TracesMatrix>power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, double pel_coeff_squared, double plat_noise, int bytes, bool save, bool savek)
 {
    TracesMatrix y(ntraces,1);
    TracesMatrix scalar_product;
@@ -170,7 +170,7 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
    if(save)
    {
       std::string dn = "DoMUnknownmodel";
-      std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "Pelgromcoefficient" + std::to_string((int)pel_coeff_squared) + "Platformnoise" + std::to_string((int)plat_noise) + "model" + out_model + ".bin";
+      std::string fn = "bytes" + std::to_string(bytes) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "Pelgromcoefficient" + std::to_string((int)pel_coeff_squared) + "Platformnoise" + std::to_string((int)plat_noise) + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
    if(savek)
@@ -182,7 +182,7 @@ void Opanalysis::DoMUnknownmodel(std::shared_ptr<TracesMatrix>& traces_matrix, s
    } else std::cout << "Key: " + std::to_string(best_key) + "\n";
 }
 
-void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_ptr<TracesMatrix>& power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, int ptx, bool save, bool savek)
+void Opanalysis::CPA(std::shared_ptr<TracesMatrix>traces_matrix, std::shared_ptr<TracesMatrix>power_model, unsigned long startingsample, unsigned long numsamples, unsigned long ntraces, char out_model, int bytes, bool save, bool savek)
 {
    TracesMatrix tr(ntraces,1);
    TracesMatrix y(ntraces,1);
@@ -221,7 +221,7 @@ void Opanalysis::CPA(std::shared_ptr<TracesMatrix>& traces_matrix, std::shared_p
    if(save)
    {
       std::string dn = "CPA";
-      std::string fn = "ptx" + std::to_string(ptx) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "model" + out_model + ".bin";
+      std::string fn = "bytes" + std::to_string(bytes) + "numtraces" + std::to_string(ntraces) + "nsam" + std::to_string(numsamples) + "model" + out_model + ".bin";
       Opanalysis::saveInFile(arg, fn, dn, numsamples);
    }
    if(savek)
